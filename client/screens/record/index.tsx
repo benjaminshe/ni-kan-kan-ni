@@ -71,7 +71,7 @@ export default function RecordScreen() {
 
     try {
       const newRecord: ContentRecord = {
-        id: generateId(),
+        id: await generateId(),
         categoryId: selectedCategory.id,
         title,
         notes: notes || undefined,

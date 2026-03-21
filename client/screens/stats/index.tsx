@@ -58,11 +58,12 @@ export default function StatsScreen() {
       const now = new Date();
       const days = period === 'week' ? 7 : 30;
       const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      const startDateStr = startDate.toISOString().split('T')[0];
 
       // 加载会话数据
       const sessions = await sessionStorage.getAll();
       const filteredSessions = sessions.filter(
-        (session) => new Date(session.startTime) >= startDate
+        (session) => session.startTime.split('T')[0] >= startDateStr
       );
 
       const totalDur = filteredSessions.reduce((sum, s) => sum + s.durationSeconds, 0);
@@ -76,7 +77,7 @@ export default function StatsScreen() {
       // 加载内容记录
       const records = await contentRecordStorage.getAll();
       const filteredRecords = records.filter(
-        (record) => new Date(record.createdAt) >= startDate
+        (record) => record.createdAt.split('T')[0] >= startDateStr
       );
 
       setTotalRecords(filteredRecords.length);

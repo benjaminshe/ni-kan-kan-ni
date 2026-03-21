@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
-import { View, ScrollView, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, ScrollView, Text, TouchableOpacity, Alert, Clipboard } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { Screen } from '@/components/Screen';
 import { ThemedText } from '@/components/ThemedText';
 import { createStyles } from './styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { resetIdCounter } from '@/services/storage';
 
 interface SettingItem {
   icon: string;
@@ -44,15 +45,20 @@ export default function ProfileScreen() {
 
       Alert.alert(
         '导出数据',
-        '数据已准备好，请手动复制保存',
+        '请选择操作',
         [
           { text: '取消', style: 'cancel' },
           {
-            text: '复制',
+            text: '复制到剪贴板',
             onPress: () => {
-              // 这里可以添加复制到剪贴板的功能
-              // 需要使用 expo-clipboard
-              alert('数据已复制到剪贴板（需要 expo-clipboard 支持）');
+              Clipboard.setString(jsonString);
+              Alert.alert('成功', '数据已复制到剪贴板');
+            },
+          },
+          {
+            text: '显示数据',
+            onPress: () => {
+              Alert.alert('导出数据', jsonString.substring(0, 5000) + (jsonString.length > 5000 ? '...(数据过长)' : ''));
             },
           },
         ],
@@ -60,7 +66,7 @@ export default function ProfileScreen() {
       );
     } catch (error) {
       console.error('Export error:', error);
-      alert('导出失败');
+      Alert.alert('导出失败', '请重试');
     }
   };
 
@@ -77,10 +83,11 @@ export default function ProfileScreen() {
             try {
               const keys = await AsyncStorage.getAllKeys();
               await AsyncStorage.multiRemove(keys);
-              alert('数据已清除');
+              await resetIdCounter();
+              Alert.alert('成功', '数据已清除');
             } catch (error) {
               console.error('Clear error:', error);
-              alert('清除失败');
+              Alert.alert('失败', '清除数据时出错');
             }
           },
         },

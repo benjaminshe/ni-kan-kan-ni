@@ -1,13 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 存储键
-const KEYS = {
-  SESSIONS: '@nikanikani:sessions',
-  CATEGORIES: '@nikanikani:categories',
-  CONTENT_RECORDS: '@nikanikani:content_records',
-  CURRENT_SESSION: '@nikanikani:current_session',
-};
-
 // 类型定义
 export interface Session {
   id: number;
@@ -30,6 +22,14 @@ export interface ContentRecord {
   notes?: string;
   createdAt: string;
 }
+
+const KEYS = {
+  SESSIONS: '@nikanikani:sessions',
+  CATEGORIES: '@nikanikani:categories',
+  CONTENT_RECORDS: '@nikanikani:content_records',
+  CURRENT_SESSION: '@nikanikani:current_session',
+  ID_COUNTER: '@nikanikani:id_counter',
+};
 
 // 会话管理
 export const sessionStorage = {
@@ -171,10 +171,25 @@ export const contentRecordStorage = {
   },
 };
 
-// 工具函数：生成唯一 ID
-let idCounter = 1;
-export const generateId = (): number => {
-  return idCounter++;
+let idCounter: number | null = null;
+
+export const generateId = async (): Promise<number> => {
+  if (idCounter === null) {
+    try {
+      const data = await AsyncStorage.getItem(KEYS.ID_COUNTER);
+      idCounter = data ? parseInt(data, 10) : 1;
+    } catch {
+      idCounter = 1;
+    }
+  }
+  const newId = idCounter++;
+  await AsyncStorage.setItem(KEYS.ID_COUNTER, idCounter.toString());
+  return newId;
+};
+
+export const resetIdCounter = async (): Promise<void> => {
+  idCounter = 1;
+  await AsyncStorage.setItem(KEYS.ID_COUNTER, '1');
 };
 
 // 工具函数：获取今天的日期字符串

@@ -37,8 +37,7 @@ export default function HomeScreen() {
 
       // 筛选今天的会话
       const todaySessions = sessions.filter(session => {
-        const startTime = new Date(session.startTime);
-        return startTime.toISOString().split('T')[0] === today;
+        return session.startTime.split('T')[0] === today;
       });
 
       const totalSessions = todaySessions.length;
@@ -61,7 +60,13 @@ export default function HomeScreen() {
   // 创建使用会话
   const createSession = async () => {
     try {
-      const id = generateId();
+      const currentSession = await sessionStorage.getCurrentSession();
+      if (currentSession) {
+        setCurrentSessionId(currentSession.id);
+        return;
+      }
+
+      const id = await generateId();
       const startTime = new Date().toISOString();
 
       // 保存到当前会话
@@ -119,28 +124,42 @@ export default function HomeScreen() {
     }, [])
   );
 
+  // 初始化会话
+  useEffect(() => {
+    const initSession = async () => {
+      const currentSession = await sessionStorage.getCurrentSession();
+      if (currentSession) {
+        setCurrentSessionId(currentSession.id);
+      } else if (AppState.currentState === 'active') {
+        await createSession();
+      }
+    };
+    initSession();
+  }, []);
+
   // 应用状态变化处理（前台/后台）
   useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
-        createSession();
+        const currentSession = await sessionStorage.getCurrentSession();
+        if (!currentSession) {
+          await createSession();
+        } else {
+          setCurrentSessionId(currentSession.id);
+        }
       } else if (nextAppState === 'background' || nextAppState === 'inactive') {
-        endSession();
+        if (currentSessionId) {
+          await endSession();
+        }
       }
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
-    // 如果当前应用是活跃状态，创建会话
-    if (AppState.currentState === 'active') {
-      createSession();
-    }
-
     return () => {
       subscription.remove();
-      endSession();
     };
-  }, []);
+  }, [currentSessionId]);
 
   // 格式化时长
   const formatDuration = (seconds: number) => {
